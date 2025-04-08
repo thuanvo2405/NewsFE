@@ -1,0 +1,14 @@
+@import "tailwindcss";
+.ck-editor__editable {
+  min-height: 200px !important; /* Đảm bảo CKEditor có chiều cao tối thiểu */
+  background-color: #1f2937 !important; /* Màu nền giống các input khác (bg-gray-800) */
+  color: #ffffff !important; /* Màu chữ trắng */
+  border: 1px solid #4b5563 !important; /* Viền giống các input khác */
+  border-radius: 0.375rem !important; /* Bo góc giống các input khác */
+}
+
+.ck-editor__top .ck-toolbar {
+  background-color: #374151 !important; /* Màu nền cho toolbar (bg-gray-700) */
+  border: 1px solid #4b5563 !important;
+  border-bottom: none !important;
+}
