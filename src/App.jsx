@@ -4,18 +4,21 @@ import Home from "./components/Home";
 import DetailNew from "./components/DetailNews/DetailNew";
 import "./App.css";
 import Category from "./components/Category";
-import { AuthProvider } from "./context/AuthContext";
+import { AuthProvider, AuthContext } from "./context/AuthContext"; // Thêm AuthContext
 import LayoutAdmin from "./components/Admin/LayoutAdmin";
 import CreateNews from "./components/Admin/CreateNews";
 import Gridnews from "./components/Admin/Gridnews";
 import UpdateNews from "./components/Admin/UpdateNews";
 import AdminLogin from "./components/Admin/AdminLogin";
 import AdminRegister from "./components/Admin/AdminRegister";
+import { useContext } from "react"; // Thêm useContext
 
-const isAuthenticated = () => {
-  const adminInfo = localStorage.getItem("adminInfo");
-  return !!adminInfo; // Trả về true nếu adminInfo tồn tại
+// Tạo component PrivateRoute để kiểm tra xác thực
+const PrivateRoute = ({ children }) => {
+  const { user } = useContext(AuthContext);
+  return user ? children : <Navigate to="/admin/login" replace />;
 };
+
 function App() {
   return (
     <BrowserRouter>
@@ -27,47 +30,28 @@ function App() {
             <Route path="/DetailNew/:id" element={<DetailNew />} />
             <Route path="/Category/:category" element={<Category />} />
             <Route path="/Category/:category/:page" element={<Category />} />
-
             <Route path="*" element={<h1>404 Not Found</h1>} />
           </Route>
 
           {/* Trang Đăng nhập Admin */}
           <Route path="/admin/login" element={<AdminLogin />} />
 
-          {/* Trang Admin (Bảo vệ) */}
-          {/* <Route
-              path="/admin/*"
-              element={
-                isAuthenticated() ? (
-                  <LayoutAdmin />
-                ) : (
-                  <Navigate to="/admin/login" replace />
-                )
-              }
-            >
-              <Route index element={<CreateNews />} />
-              <Route path="listnew" element={<Gridnews />} />
-              <Route path="register" element={<AdminRegister />} />
-              <Route path="updatenew/:id" element={<UpdateNews />} />
-            </Route> */}
-          {/* Trang Đăng ký Admin */}
-          <Route path="/admin/register" element={<AdminRegister />} />
-
-          {/* Trang Admin (chỉ khi đã login) */}
+          {/* Trang Admin (Bảo vệ bởi PrivateRoute) */}
           <Route
             path="/admin/*"
             element={
-              isAuthenticated() ? (
+              <PrivateRoute>
                 <LayoutAdmin />
-              ) : (
-                <Navigate to="/admin/login" replace />
-              )
+              </PrivateRoute>
             }
           >
             <Route index element={<CreateNews />} />
             <Route path="listnew" element={<Gridnews />} />
             <Route path="updatenew/:id" element={<UpdateNews />} />
           </Route>
+
+          {/* Trang Đăng ký Admin */}
+          <Route path="/admin/register" element={<AdminRegister />} />
         </Routes>
       </AuthProvider>
     </BrowserRouter>

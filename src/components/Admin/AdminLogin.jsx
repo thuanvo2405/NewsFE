@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useContext } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { Eye, EyeOff, Mail, Lock, AlertCircle } from "lucide-react";
-
+import { AuthContext } from "../../context/AuthContext";
 const AdminLogin = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -11,7 +11,7 @@ const AdminLogin = () => {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
-
+  const { login } = useContext(AuthContext);
   useEffect(() => {
     // Check if already logged in
     const adminInfo = localStorage.getItem("adminInfo");
@@ -55,7 +55,7 @@ const AdminLogin = () => {
       };
 
       localStorage.setItem("adminInfo", JSON.stringify(adminToStore));
-
+      login(adminToStore);
       // Redirect to admin dashboard
       navigate("/admin", { replace: true });
     } catch (err) {
@@ -218,33 +218,7 @@ const AdminLogin = () => {
                 </button>
               </div>
             </form>
-
-            {/* Demo credentials */}
-            <div className="mt-6 p-4 bg-blue-50 rounded-lg">
-              <h3 className="text-sm font-medium text-blue-800 mb-2">
-                Demo Credentials
-              </h3>
-              <p className="text-xs text-blue-700 mb-1">
-                Email: admin@example.com
-              </p>
-              <p className="text-xs text-blue-700">
-                Password: (use your actual password)
-              </p>
-            </div>
           </div>
-        </div>
-
-        {/* Footer links */}
-        <div className="mt-6 text-center text-sm text-gray-600">
-          <p>
-            Don't have an account?{" "}
-            <Link
-              to="/admin/register"
-              className="font-medium text-indigo-600 hover:text-indigo-500"
-            >
-              Register here
-            </Link>
-          </p>
         </div>
       </div>
     </div>
