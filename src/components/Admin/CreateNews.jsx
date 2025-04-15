@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useState, useContext } from "react";
 import "react-quill-new/dist/quill.snow.css"; // Import CSS của React Quill
 import Editor from "./Editor";
 import { useNavigate } from "react-router-dom";
-
+import { NewsContext } from "../../context/NewsContext";
 // Define the available categories
 const availableCategories = [
   "Technology",
@@ -17,6 +17,7 @@ const availableCategories = [
 
 const CreateNews = () => {
   const navigate = useNavigate();
+  const { addNews } = useContext(NewsContext);
   const [formData, setFormData] = useState({
     source: { id: null, name: "" },
     author: "Unknown",
@@ -62,17 +63,12 @@ const CreateNews = () => {
     e.preventDefault();
     if (validate()) {
       try {
-        // No need to split category anymore, it's a single value from radio
         const formattedData = {
           ...formData,
-          // Ensure category is sent as a single string, or wrap in array if backend expects it
-          // Assuming backend now expects a single string:
           category: formData.category,
-          // If backend STILL expects an array (less likely with radio buttons):
-          // category: [formData.category],
         };
 
-        console.log("Sending data:", JSON.stringify(formattedData)); // Log data being sent
+        console.log("Sending data:", JSON.stringify(formattedData));
 
         const response = await fetch(
           "https://newsserver-a71z.onrender.com/api/news",
@@ -83,31 +79,25 @@ const CreateNews = () => {
           }
         );
 
-        // Log response status and body for debugging
-        const responseBody = await response.text(); // Read body as text first
+        const responseBody = await response.json(); // Đổi thành json()
+
         console.log("Response Status:", response.status);
         console.log("Response Body:", responseBody);
 
         if (!response.ok) {
-          // Try to parse error message if it's JSON
-          try {
-            const errorData = JSON.parse(responseBody);
-            throw new Error(
-              errorData.message || `Lỗi khi gửi dữ liệu: ${response.statusText}`
-            );
-          } catch (parseError) {
-            // If not JSON, use the raw text
-            throw new Error(
-              `Lỗi khi gửi dữ liệu: ${response.statusText} - ${responseBody}`
-            );
-          }
+          throw new Error(
+            responseBody.message ||
+              `Lỗi khi gửi dữ liệu: ${response.statusText}`
+          );
         }
 
+        // Thêm bài viết mới vào context
+        addNews(responseBody);
+
         console.log("Bài viết đã được thêm thành công!");
-        navigate("/admin/listnew"); // Chuyển hướng sau khi thêm thành công
+        navigate("/admin/listnew");
       } catch (error) {
         console.error("Error creating news:", error);
-        // Optionally display error to user
         setErrors({
           ...errors,
           submit: error.message || "Có lỗi xảy ra khi thêm bài viết.",

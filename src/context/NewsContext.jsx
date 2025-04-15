@@ -13,8 +13,13 @@ function NewsProvider({ children }) {
       });
   }, []);
 
+  // Thêm hàm addNews
+  const addNews = (newArticle) => {
+    setNews((prevNews) => [newArticle, ...prevNews]);
+  };
+
   return (
-    <NewsContext.Provider value={{ news, setNews }}>
+    <NewsContext.Provider value={{ news, setNews, addNews }}>
       {children}
     </NewsContext.Provider>
   );
