@@ -1,10 +1,22 @@
 import { useState } from "react";
 import "react-quill-new/dist/quill.snow.css"; // Import CSS của React Quill
 import Editor from "./Editor";
-import { useNavigate } from "react-router-dom"; // Thêm useNavigate để xử lý nút Hủy
+import { useNavigate } from "react-router-dom";
+
+// Define the available categories
+const availableCategories = [
+  "Technology",
+  "Sport",
+  "Entertainment",
+  "Business",
+  "Book",
+  "Food",
+  "Health",
+  "Science",
+];
 
 const CreateNews = () => {
-  const navigate = useNavigate(); // Dùng để điều hướng khi nhấn Hủy
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     source: { id: null, name: "" },
     author: "Unknown",
@@ -14,8 +26,8 @@ const CreateNews = () => {
     urlToImage: "",
     publishedAt: new Date().toISOString().slice(0, 16),
     content: "",
-    video: null,
-    category: "",
+    video: null, // Changed initial state to null for clarity, though "" works too
+    category: "", // Initially no category selected
   });
 
   const [errors, setErrors] = useState({});
@@ -28,7 +40,7 @@ const CreateNews = () => {
     if (!formData.urlToImage)
       newErrors.urlToImage = "URL hình ảnh là bắt buộc.";
     if (!formData.content) newErrors.content = "Nội dung là bắt buộc.";
-    if (!formData.category) newErrors.category = "Danh mục là bắt buộc.";
+    if (!formData.category) newErrors.category = "Vui lòng chọn một danh mục."; // Updated error message
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -50,29 +62,62 @@ const CreateNews = () => {
     e.preventDefault();
     if (validate()) {
       try {
+        // No need to split category anymore, it's a single value from radio
         const formattedData = {
           ...formData,
-          category: formData.category.split(",").map((item) => item.trim()),
+          // Ensure category is sent as a single string, or wrap in array if backend expects it
+          // Assuming backend now expects a single string:
+          category: formData.category,
+          // If backend STILL expects an array (less likely with radio buttons):
+          // category: [formData.category],
         };
 
-        const response = await fetch("https://newsserver-a71z.onrender.com/api/news", {
-          method: "POST",
-          body: JSON.stringify(formattedData),
-          headers: { "Content-Type": "application/json" },
-        });
+        console.log("Sending data:", JSON.stringify(formattedData)); // Log data being sent
 
-        if (!response.ok) throw new Error("Lỗi khi gửi dữ liệu");
+        const response = await fetch(
+          "https://newsserver-a71z.onrender.com/api/news",
+          {
+            method: "POST",
+            body: JSON.stringify(formattedData),
+            headers: { "Content-Type": "application/json" },
+          }
+        );
+
+        // Log response status and body for debugging
+        const responseBody = await response.text(); // Read body as text first
+        console.log("Response Status:", response.status);
+        console.log("Response Body:", responseBody);
+
+        if (!response.ok) {
+          // Try to parse error message if it's JSON
+          try {
+            const errorData = JSON.parse(responseBody);
+            throw new Error(
+              errorData.message || `Lỗi khi gửi dữ liệu: ${response.statusText}`
+            );
+          } catch (parseError) {
+            // If not JSON, use the raw text
+            throw new Error(
+              `Lỗi khi gửi dữ liệu: ${response.statusText} - ${responseBody}`
+            );
+          }
+        }
 
         console.log("Bài viết đã được thêm thành công!");
         navigate("/admin/listnew"); // Chuyển hướng sau khi thêm thành công
       } catch (error) {
         console.error("Error creating news:", error);
+        // Optionally display error to user
+        setErrors({
+          ...errors,
+          submit: error.message || "Có lỗi xảy ra khi thêm bài viết.",
+        });
       }
     }
   };
 
   const handleCancel = () => {
-    navigate("/admin/listnew"); // Quay lại danh sách bài viết khi nhấn Hủy
+    navigate("/admin/listnew");
   };
 
   return (
@@ -80,6 +125,9 @@ const CreateNews = () => {
       <h2 className="text-3xl font-bold mb-6 text-center text-blue-300">
         Thêm Bài Viết Mới
       </h2>
+      {errors.submit && ( // Display submit error if any
+        <p className="text-red-400 text-center text-lg mb-4">{errors.submit}</p>
+      )}
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Source */}
         <div>
@@ -193,7 +241,8 @@ const CreateNews = () => {
             value={formData.publishedAt}
             onChange={handleChange}
             className="w-full p-3 border border-gray-600 rounded-lg bg-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
-            readOnly
+            // Removed readOnly, user might want to adjust this slightly, but it defaults to now.
+            // Add readOnly back if you strictly want it to be non-editable.
           />
         </div>
 
@@ -202,6 +251,7 @@ const CreateNews = () => {
           <label className="block text-sm font-medium mb-1 text-gray-300">
             Nội dung <span className="text-red-500">*</span>
           </label>
+          {/* Ensure Editor component passes value and onChange correctly */}
           <Editor value={formData.content} onChange={handleContentChange} />
           {errors.content && (
             <p className="text-red-400 text-sm mt-1">{errors.content}</p>
@@ -214,35 +264,54 @@ const CreateNews = () => {
             URL video (tuỳ chọn)
           </label>
           <input
-            type="text"
+            type="url" // Changed type to url for better validation hint
             name="video"
             placeholder="URL video (nếu có)"
-            value={formData.video}
+            value={formData.video || ""} // Handle null value for input
             onChange={handleChange}
             className="w-full p-3 border border-gray-600 rounded-lg bg-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
           />
         </div>
 
-        {/* Category */}
+        {/* Category - Replaced with Radio Buttons */}
         <div>
-          <label className="block text-sm font-medium mb-1 text-gray-300">
+          <label className="block text-sm font-medium mb-2 text-gray-300">
+            {" "}
+            {/* Increased bottom margin */}
             Danh mục <span className="text-red-500">*</span>
           </label>
-          <input
-            type="text"
-            name="category"
-            placeholder="Danh mục (phân cách bằng dấu phẩy, ví dụ: Công nghệ, Thể thao)"
-            value={formData.category}
-            onChange={handleChange}
-            className="w-full p-3 border border-gray-600 rounded-lg bg-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
-          />
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-x-4 gap-y-2">
+            {" "}
+            {/* Grid layout for radio buttons */}
+            {availableCategories.map((category) => (
+              <div key={category} className="flex items-center">
+                <input
+                  type="radio"
+                  id={`category-${category}`} // Unique ID for label association
+                  name="category"
+                  value={category}
+                  checked={formData.category === category} // Check if this category is the selected one
+                  onChange={handleChange} // Use the same handler
+                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-500 bg-gray-700 cursor-pointer" // Basic styling
+                />
+                <label
+                  htmlFor={`category-${category}`} // Associate label with input
+                  className="ml-2 block text-sm text-gray-300 cursor-pointer"
+                >
+                  {category}
+                </label>
+              </div>
+            ))}
+          </div>
           {errors.category && (
-            <p className="text-red-400 text-sm mt-1">{errors.category}</p>
+            <p className="text-red-400 text-sm mt-2">{errors.category}</p> // Added top margin
           )}
         </div>
 
         {/* Buttons */}
-        <div className="flex justify-end space-x-4">
+        <div className="flex justify-end space-x-4 pt-4">
+          {" "}
+          {/* Added padding top */}
           <button
             type="button"
             onClick={handleCancel}
